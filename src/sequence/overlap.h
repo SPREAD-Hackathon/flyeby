@@ -316,7 +316,8 @@ public:
 					int maxJump, int minOverlap, int maxOverhang,
 					bool keepAlignment, bool onlyMaxExt,
 					float maxDivergence, bool nuclAlignment,
-					bool partitionBadMappings, bool useHpc):
+					bool partitionBadMappings, bool useHpc,
+					bool allowTerminalSelfOverlaps = false):
 		_maxJump(maxJump),
 		_minOverlap(minOverlap),
 		_maxOverhang(maxOverhang),
@@ -327,6 +328,7 @@ public:
 		_nuclAlignment(nuclAlignment),
 		_partitionBadMappings(partitionBadMappings),
 		_useHpc(useHpc),
+		_allowTerminalSelfOverlaps(allowTerminalSelfOverlaps),
 		_maxDivergence(maxDivergence),
 		//_badEndAdjustment(badEndAdjustment),
 		//_estimatorBias(0.0f),
@@ -345,6 +347,7 @@ private:
 				   int maxOverlaps) const;
 
 	bool    overlapTest(const OverlapRange& ovlp, bool forceLocal) const;
+	bool    isTerminalSelfOverlap(const OverlapRange& ovlp) const;
 
 	const int   _maxJump;
 	const int   _minOverlap;
@@ -356,6 +359,7 @@ private:
 	const bool  _nuclAlignment;
 	const bool  _partitionBadMappings;
 	const bool  _useHpc;
+	const bool  _allowTerminalSelfOverlaps;
 
 	mutable float _maxDivergence;
 	//mutable float _badEndAdjustment;

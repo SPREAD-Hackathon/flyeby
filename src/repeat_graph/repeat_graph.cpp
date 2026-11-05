@@ -96,7 +96,8 @@ void RepeatGraph::build(bool keepHaplotypes)
 								  (float)Config::get("repeat_graph_ovlp_divergence"),
 								  /*nucl alignment*/ true, 
 								  /*partition bad map*/ true,
-								  (bool)Config::get("hpc_scoring_on"));
+								  (bool)Config::get("hpc_scoring_on"),
+								  (bool)Config::get("repeat_graph_terminal_self_overlaps"));
 
 	OverlapContainer asmOverlaps(asmOverlapper, _asmSeqs);
 	asmOverlaps.findAllOverlaps();

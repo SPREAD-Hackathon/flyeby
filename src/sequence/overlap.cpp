@@ -25,6 +25,53 @@
 #include "../common/bfcontainer.h"
 
 
+namespace
+{
+	bool isIntersectingSelfOverlap(const OverlapRange& ovlp)
+	{
+		return ovlp.curId == ovlp.extId &&
+			   std::min(ovlp.curEnd, ovlp.extEnd) -
+				   std::max(ovlp.curBegin, ovlp.extBegin) > ovlp.curRange() / 2;
+	}
+}
+
+bool OverlapDetector::isTerminalSelfOverlap(const OverlapRange& ovlp) const
+{
+	const int32_t startShift = ovlp.curBegin - ovlp.extBegin;
+	const int32_t endShift = ovlp.curEnd - ovlp.extEnd;
+	const int32_t maxOverhang = _minOverlap / 4;
+	if (std::abs(startShift) < _minOverlap || std::abs(endShift) < _minOverlap ||
+		(startShift < 0) != (endShift < 0) ||
+		std::abs(startShift - endShift) > maxOverhang)
+	{
+		return false;
+	}
+
+	const auto& sequence = _seqContainer.getSeq(ovlp.curId);
+	const int32_t seedSlack = 2 * Parameters::get().kmerSize;
+	// Allow seed-scale misses at both ends, including homopolymer-expanded tails
+	// in modes that already use homopolymer compression for overlap scoring.
+	auto shortTail = [&](int32_t begin, int32_t end)
+	{
+		if (end - begin > maxOverhang) return false;
+		if (end - begin <= seedSlack) return true;
+		if (!_useHpc) return false;
+
+		int32_t runs = 1;
+		for (int32_t i = begin + 1; i < end; ++i)
+		{
+			if (sequence.at(i) != sequence.at(i - 1) && ++runs > seedSlack)
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+
+	return shortTail(0, std::min(ovlp.curBegin, ovlp.extBegin)) &&
+		   shortTail(std::max(ovlp.curEnd, ovlp.extEnd) + 1, ovlp.curLen);
+}
+
 //Check if it is a proper overlap
 bool OverlapDetector::overlapTest(const OverlapRange& ovlp,
 								  bool forceLocal) const
@@ -46,11 +93,10 @@ bool OverlapDetector::overlapTest(const OverlapRange& ovlp,
 	}
 
 	//check if it's "almost trivial" match with intersecting sequence
-	if (ovlp.curId == ovlp.extId)
+	if (isIntersectingSelfOverlap(ovlp) &&
+		!(_allowTerminalSelfOverlaps && isTerminalSelfOverlap(ovlp)))
 	{
-		int32_t intersect = std::min(ovlp.curEnd, ovlp.extEnd) - 
-			   				std::max(ovlp.curBegin, ovlp.extBegin);
-		if (intersect > ovlp.curRange() / 2) return false;
+		return false;
 	}
 
 	//check "strand skipping" PacBio pattern
@@ -426,6 +472,15 @@ OverlapDetector::getSeqOverlaps(const FastaRecord& fastaRec,
 				//float repeatRate = (float)filteredPositions / ovlp.curRange();
 				ovlp.seqDivergence = std::log(1 / matchRate) / kmerSize;
 				//ovlp.seqDivergence += _estimatorBias;
+				if (isIntersectingSelfOverlap(ovlp))
+				{
+					// A rescued terminal chain must pass in full, before it can
+					// mask a contained chain or be trimmed into an internal hit.
+					ovlp.seqDivergence = getAlignmentErrEdlib(ovlp, fastaRec.sequence,
+															 _seqContainer.getSeq(extId),
+															 _maxDivergence, _useHpc);
+					if (ovlp.seqDivergence >= _maxDivergence) continue;
+				}
 				extOverlaps.push_back(ovlp);
 			}
 		}
@@ -464,7 +519,7 @@ OverlapDetector::getSeqOverlaps(const FastaRecord& fastaRec,
 		//divergence check for the selected primary overlaps
 		for (auto& ovlp : primaryOverlaps)
 		{
-			if(_nuclAlignment)	//identity using base-level alignment
+			if (_nuclAlignment && !isIntersectingSelfOverlap(ovlp))
 			{
 				ovlp.seqDivergence = getAlignmentErrEdlib(ovlp, fastaRec.sequence, 
 														   _seqContainer.getSeq(extId),
