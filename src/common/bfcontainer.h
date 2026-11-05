@@ -212,10 +212,10 @@ public:
 			return *this;
 		}
 
-        BFIterator& operator++(int) 
+        BFIterator operator++(int)
 		{
 			auto tmp(*this); 
-			++(*tmp); 
+			++(*this);
 			return tmp;
 		}
 
@@ -230,14 +230,14 @@ public:
 			return *this;
 		}
 
-        BFIterator& operator--(int) 
+        BFIterator operator--(int)
 		{
 			auto tmp(*this); 
-			--tmp; 
+			--(*this);
 			return tmp;
 		}
 
-		T& operator[](difference_type n) {return *(*this += n);}
+		T& operator[](difference_type n) const {return *(*this + n);}
 
 		T& operator*() const {return *_chunkCur;}
         T* operator->() const {return _chunkCur;}
