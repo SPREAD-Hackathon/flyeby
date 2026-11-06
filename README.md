@@ -1,3 +1,13 @@
+# Flyeby — small Flye patch for hackathon testing
+
+This repository contains the original [Flye assembler](https://github.com/mikolmogorov/Flye) with a small experimental patch for testing during the SPREAD hackathon.
+
+The Flye assembler, its algorithms, and the upstream documentation and benchmark results below are the work of the original Flye authors and contributors. This repository's contribution is limited to the hackathon patch. Please credit and cite Flye using the original publications listed below.
+
+The original Flye README follows, including its credits, license information, and citation guidance.
+
+---
+
 Flye assembler
 ==============
 
